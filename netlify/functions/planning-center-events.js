@@ -40,17 +40,19 @@ exports.handler = async function (event, context) {
     // Calculate 'now' in the format PCO expects
     const now = new Date().toISOString();
 
-    let response;
+    // --- 3. Fetch Data ---
+    // We need both events and tag groups to provide the hierarchy.
+    // Fetch in parallel.
 
+    // Prepare Event Request
+    let eventPromise;
     if (singleId) {
-      // Fetch single instance
-      response = await axios.get(`https://api.planningcenteronline.com/calendar/v2/event_instances/${singleId}`, {
+      eventPromise = axios.get(`https://api.planningcenteronline.com/calendar/v2/event_instances/${singleId}`, {
         auth: { username: appId, password: secret },
         params: { 'include': 'event,event.tags' }
       });
     } else {
-      // Fetch list
-      response = await axios.get('https://api.planningcenteronline.com/calendar/v2/event_instances', {
+      eventPromise = axios.get('https://api.planningcenteronline.com/calendar/v2/event_instances', {
         auth: { username: appId, password: secret },
         params: {
           'where[starts_at][gte]': now,
@@ -61,9 +63,29 @@ exports.handler = async function (event, context) {
       });
     }
 
-    // Handle both single object (data) and array (data[]) responses
-    const instances = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
-    const included = response.data.included || [];
+    // Prepare Tag Group Request (Fetch all to build map)
+    const groupPromise = axios.get('https://api.planningcenteronline.com/calendar/v2/tag_groups?include=tags', {
+      auth: { username: appId, password: secret }
+    });
+
+    const [eventResponse, groupResponse] = await Promise.all([eventPromise, groupPromise]);
+
+    // --- 4. Process Tag Groups ---
+    const tagToGroupMap = {};
+    const groups = groupResponse.data.data || [];
+    groups.forEach(group => {
+      const groupName = group.attributes.name;
+      // The group relationships contains the tags
+      if (group.relationships && group.relationships.tags && group.relationships.tags.data) {
+        group.relationships.tags.data.forEach(tagRef => {
+          tagToGroupMap[tagRef.id] = groupName;
+        });
+      }
+    });
+
+    // --- 5. Process Events ---
+    const instances = Array.isArray(eventResponse.data.data) ? eventResponse.data.data : [eventResponse.data.data];
+    const included = eventResponse.data.included || [];
 
     // Create maps for easy lookup
     const eventsMap = {};
@@ -87,7 +109,15 @@ exports.handler = async function (event, context) {
         ? eventDetails.relationships.tags.data.map(t => t.id)
         : [];
 
-      const tags = tagIds.map(id => tagsMap[id]).filter(t => t); // Filter out undefined if any
+      const tags = tagIds.map(id => {
+        const tagAttr = tagsMap[id];
+        if (!tagAttr) return null;
+        return {
+          name: tagAttr.name,
+          color: tagAttr.color,
+          group: tagToGroupMap[id] || null // Add Group Name
+        };
+      }).filter(t => t);
 
       return {
         id: instance.id,
@@ -99,7 +129,7 @@ exports.handler = async function (event, context) {
         image_url: eventDetails.attributes ? eventDetails.attributes.image_url : null,
         registration_url: eventDetails.attributes ? eventDetails.attributes.registration_url : null,
         church_center_url: attributes.church_center_url,
-        tags: tags // Array of { name, color, ... }
+        tags: tags
       };
     });
 

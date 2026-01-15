@@ -456,11 +456,22 @@
 
         function populateFilters(events) {
             const filterSelect = document.getElementById('category-filter');
-            // Extract all unique tag names
-            const tagSet = new Set();
+
+            // Collect tags and their groups
+            // Map: GroupName -> Set(TagNames)
+            const groups = {};
+            const noGroupTags = new Set();
+
             events.forEach(event => {
                 if (event.tags) {
-                    event.tags.forEach(tag => tagSet.add(tag.name));
+                    event.tags.forEach(tag => {
+                        if (tag.group) {
+                            if (!groups[tag.group]) groups[tag.group] = new Set();
+                            groups[tag.group].add(tag.name);
+                        } else {
+                            noGroupTags.add(tag.name);
+                        }
+                    });
                 }
             });
 
@@ -469,12 +480,33 @@
                 filterSelect.remove(2);
             }
 
-            Array.from(tagSet).sort().forEach(tagName => {
-                const option = document.createElement('option');
-                option.value = tagName;
-                option.textContent = tagName;
-                filterSelect.appendChild(option);
+            // Add Grouped Tags
+            Object.keys(groups).sort().forEach(groupName => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = groupName;
+
+                Array.from(groups[groupName]).sort().forEach(tagName => {
+                    const option = document.createElement('option');
+                    option.value = tagName;
+                    option.textContent = tagName;
+                    optgroup.appendChild(option);
+                });
+
+                filterSelect.appendChild(optgroup);
             });
+
+            // Add Un-grouped Tags
+            if (noGroupTags.size > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = "Other";
+                Array.from(noGroupTags).sort().forEach(tagName => {
+                    const option = document.createElement('option');
+                    option.value = tagName;
+                    option.textContent = tagName;
+                    optgroup.appendChild(option);
+                });
+                filterSelect.appendChild(optgroup);
+            }
 
             // Add event listener
             filterSelect.onchange = filterEvents;

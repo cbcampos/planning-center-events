@@ -20,7 +20,7 @@ async function inspectEvents() {
                 'where[starts_at][gte]': now,
                 'order': 'starts_at',
                 'per_page': 1, // Just get one to see structure
-                'include': 'event,event.tags' // Try to include tags
+                'include': 'event,event.tags' // Revert to allowed depth
             }
         });
 
@@ -36,10 +36,11 @@ async function inspectEvents() {
                 types[item.type].push(item);
             });
 
-            Object.keys(types).forEach(type => {
-                console.log(`\nType: ${type} (Count: ${types[type].length})`);
-                console.log(JSON.stringify(types[type][0], null, 2));
-            });
+            const tags = types['Tag'] || [];
+            if (tags.length > 0) {
+                console.log('\n--- Tag Details ---');
+                console.log(JSON.stringify(tags[0], null, 2));
+            }
 
             // Check if any event has relationships to tags
             const events = types['Event'] || [];
