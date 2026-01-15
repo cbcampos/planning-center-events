@@ -411,6 +411,8 @@
             }
         }
 
+        let allEvents = []; // Store fetched events for filtering
+
         // --- List View Logic ---
         async function showList() {
             document.getElementById('events-container').style.display = 'flex';
@@ -418,8 +420,16 @@
             document.getElementById('list-header').style.visibility = 'visible';
 
             const container = document.getElementById('events-container');
-            // Only load if empty (simple caching)
-            if (container.children.length > 1 || (container.children.length === 1 && !container.children[0].classList.contains('loading'))) return;
+
+            // If we already have events, just re-render (allows back button to keep state)
+            if (allEvents.length > 0) {
+                renderEvents(allEvents); // Render all or currently filtered? For now render all.
+                // Actually, we should probably check current filter state?
+                // Let's keep it simple: Reset filter on page load? Or persisting?
+                // Let's re-apply current filter if any.
+                filterEvents();
+                return;
+            }
 
             container.innerHTML = '<div class="loading">Loading events...</div>';
             const API_ENDPOINT = '/.netlify/functions/planning-center-events?limit=20';
@@ -434,54 +444,9 @@
                     return;
                 }
 
-                container.innerHTML = '';
-
-                data.events.forEach(event => {
-                    const startDate = new Date(event.start_time);
-
-                    const month = startDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
-                    const day = startDate.getDate();
-                    const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                    let timeString = startTime;
-                    if (event.end_time) {
-                        const endTime = new Date(event.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                        timeString += ` - ${endTime}`;
-                    }
-
-                    const location = event.location ? ` • &nbsp; ${event.location}` : '';
-                    const tagsHtml = '';
-
-                    const card = document.createElement('div');
-                    card.className = 'event-row';
-
-                    // Use our internal routing for clicking
-                    // If there's NO registration URL, we default to showing details. 
-                    // Wait, user might want "View Details" to go to our internal detail page regardless? 
-                    // For now: "View Details" -> Internal Detail Page. registration_url -> External.
-                    // Actually user screenshot has "Register" on the detail page.
-                    // So "View Details" on list should go to Detail Page.
-
-                    card.innerHTML = `
-                        <div class="event-date-box">
-                            <span class="date-month">${month}</span>
-                            <span class="date-day">${day}</span>
-                        </div>
-                        
-                        <div class="event-content">
-                            ${tagsHtml}
-                            <h2 class="event-title">${event.title}</h2>
-                            <div class="event-meta">
-                                ${timeString}
-                                <span class="event-meta-location">${location}</span>
-                            </div>
-                        </div>
-
-                        <div class="event-action">
-                            <button onclick="viewEvent('${event.id}')" class="btn-details">View Details</button>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
+                allEvents = data.events; // Store globally
+                populateFilters(allEvents);
+                renderEvents(allEvents); // Initial render
 
             } catch (error) {
                 console.error('Error:', error);
@@ -489,11 +454,104 @@
             }
         }
 
+        function populateFilters(events) {
+            const filterSelect = document.getElementById('category-filter');
+            // Extract all unique tag names
+            const tagSet = new Set();
+            events.forEach(event => {
+                if (event.tags) {
+                    event.tags.forEach(tag => tagSet.add(tag.name));
+                }
+            });
+
+            // Clear existing options except first two
+            while (filterSelect.options.length > 2) {
+                filterSelect.remove(2);
+            }
+
+            Array.from(tagSet).sort().forEach(tagName => {
+                const option = document.createElement('option');
+                option.value = tagName;
+                option.textContent = tagName;
+                filterSelect.appendChild(option);
+            });
+
+            // Add event listener
+            filterSelect.onchange = filterEvents;
+        }
+
+        function filterEvents() {
+            const selectedCategory = document.getElementById('category-filter').value;
+            const container = document.getElementById('events-container');
+
+            let filtered = allEvents;
+
+            if (selectedCategory !== 'all' && selectedCategory !== 'Choose a category') {
+                filtered = allEvents.filter(event =>
+                    event.tags && event.tags.some(tag => tag.name === selectedCategory)
+                );
+            }
+
+            renderEvents(filtered);
+        }
+
+        function renderEvents(events) {
+            const container = document.getElementById('events-container');
+            container.innerHTML = '';
+
+            if (events.length === 0) {
+                container.innerHTML = '<div class="loading">No events match this filter.</div>';
+                return;
+            }
+
+            events.forEach(event => {
+                const startDate = new Date(event.start_time);
+
+                const month = startDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                const day = startDate.getDate();
+                const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                let timeString = startTime;
+                if (event.end_time) {
+                    const endTime = new Date(event.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    timeString += ` - ${endTime}`;
+                }
+
+                const location = event.location ? ` • &nbsp; ${event.location}` : '';
+
+                // Render tags
+                const tagsHtml = event.tags && event.tags.length > 0
+                    ? `<div class="event-tags">${event.tags.map(t => `• ${t.name}`).join(' ')}</div>`
+                    : '';
+
+                const card = document.createElement('div');
+                card.className = 'event-row';
+
+                card.innerHTML = `
+                <div class="event-date-box">
+                    <span class="date-month">${month}</span>
+                    <span class="date-day">${day}</span>
+                </div>
+                
+                <div class="event-content">
+                    ${tagsHtml}
+                    <h2 class="event-title">${event.title}</h2>
+                    <div class="event-meta">
+                        ${timeString}
+                        <span class="event-meta-location">${location}</span>
+                    </div>
+                </div>
+
+                <div class="event-action">
+                    <button onclick="viewEvent('${event.id}')" class="btn-details">View Details</button>
+                </div>
+            `;
+                container.appendChild(card);
+            });
+        }
+
         // --- Detail View Logic ---
         async function showDetail(id) {
             document.getElementById('events-container').style.display = 'none';
-            document.getElementById('detail-container').style.display = 'block';
-            document.getElementById('list-header').style.visibility = 'hidden'; // Hide filter on detail
 
             const content = document.getElementById('detail-content');
             content.innerHTML = '<div class="loading">Loading details...</div>';

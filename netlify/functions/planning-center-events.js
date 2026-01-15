@@ -46,7 +46,7 @@ exports.handler = async function (event, context) {
       // Fetch single instance
       response = await axios.get(`https://api.planningcenteronline.com/calendar/v2/event_instances/${singleId}`, {
         auth: { username: appId, password: secret },
-        params: { 'include': 'event' }
+        params: { 'include': 'event,event.tags' }
       });
     } else {
       // Fetch list
@@ -56,7 +56,7 @@ exports.handler = async function (event, context) {
           'where[starts_at][gte]': now,
           'order': 'starts_at',
           'per_page': limit,
-          'include': 'event'
+          'include': 'event,event.tags'
         }
       });
     }
@@ -65,11 +65,15 @@ exports.handler = async function (event, context) {
     const instances = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
     const included = response.data.included || [];
 
-    // Create a map of events for easy lookup
+    // Create maps for easy lookup
     const eventsMap = {};
+    const tagsMap = {};
+
     included.forEach(item => {
       if (item.type === 'Event') {
         eventsMap[item.id] = item;
+      } else if (item.type === 'Tag') {
+        tagsMap[item.id] = item.attributes;
       }
     });
 
@@ -77,6 +81,13 @@ exports.handler = async function (event, context) {
     const formattedEvents = instances.map(instance => {
       const eventDetails = eventsMap[instance.relationships.event.data.id] || {};
       const attributes = instance.attributes;
+
+      // Resolve tags
+      const tagIds = eventDetails.relationships && eventDetails.relationships.tags && eventDetails.relationships.tags.data
+        ? eventDetails.relationships.tags.data.map(t => t.id)
+        : [];
+
+      const tags = tagIds.map(id => tagsMap[id]).filter(t => t); // Filter out undefined if any
 
       return {
         id: instance.id,
@@ -87,7 +98,8 @@ exports.handler = async function (event, context) {
         description: eventDetails.attributes ? eventDetails.attributes.summary : '',
         image_url: eventDetails.attributes ? eventDetails.attributes.image_url : null,
         registration_url: eventDetails.attributes ? eventDetails.attributes.registration_url : null,
-        church_center_url: attributes.church_center_url
+        church_center_url: attributes.church_center_url,
+        tags: tags // Array of { name, color, ... }
       };
     });
 

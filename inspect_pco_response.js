@@ -37,9 +37,17 @@ async function inspectEvents() {
             });
 
             Object.keys(types).forEach(type => {
-                console.log(`\nType: ${type}`);
-                console.log(JSON.stringify(types[type][0].attributes, null, 2));
+                console.log(`\nType: ${type} (Count: ${types[type].length})`);
+                console.log(JSON.stringify(types[type][0], null, 2));
             });
+
+            // Check if any event has relationships to tags
+            const events = types['Event'] || [];
+            if (events.length > 0) {
+                console.log('\n--- Event Relationships ---');
+                console.log(JSON.stringify(events[0].relationships, null, 2));
+            }
+
         } else {
             console.log('No included items found.');
         }
