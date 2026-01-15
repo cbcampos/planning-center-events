@@ -1,15 +1,23 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Lato:wght@300;400;700&display=swap');
 
 :root {
-    --font-serif: 'Playfair Display', serif;
-    --font-sans: 'Lato', sans-serif;
+    /* Branding Colors extracted from image */
+    /* Dark Green for headers and primary actions */
+    --brand-green: #1a4d3e;
+    /* Beige/Gold accent from logo mark for subtle highlights (optional) */
+    --brand-gold: #b0a78f;
+
     --text-primary: #111;
     --text-secondary: #555;
-    --bg-date: #f4f4f4;
+    --bg-date: #f9f9f9;
+
+    /* Fonts */
+    --font-heading: 'Montserrat', sans-serif;
+    --font-body: 'Lato', sans-serif;
 }
 
 body {
-    font-family: var(--font-sans);
+    font-family: var(--font-body);
     color: var(--text-primary);
     line-height: 1.6;
     margin: 0;
@@ -27,22 +35,30 @@ body {
 header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    /* Changed to better space items */
     margin-bottom: 60px;
-    border-bottom: 1px solid #eee;
     padding-bottom: 20px;
     position: relative;
+    border-bottom: 2px solid #f0f0f0;
+    /* Lighter, cleaner border */
 }
 
 /* Page Title */
 .page-title {
-    font-family: var(--font-serif);
-    font-size: 3.5rem;
-    font-weight: 400;
-    font-style: italic;
-    color: #0c2b64;
+    font-family: var(--font-heading);
+    font-size: 3rem;
+    /* Slightly smaller but bolder */
+    font-weight: 700;
+    font-style: normal;
+    /* Removed italic */
+    color: var(--brand-green);
+    /* Updated color */
     margin: 0;
     line-height: 1;
-    flex-grow: 1;
+    text-transform: uppercase;
+    /* Match image style */
+    letter-spacing: -0.02em;
 }
 
 /* Filter Section */
@@ -50,27 +66,28 @@ header {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-right: auto;
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
 }
 
 .filter-label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     font-weight: 700;
+    color: var(--text-secondary);
+    font-family: var(--font-heading);
 }
 
 #category-filter {
-    padding: 8px 12px;
-    font-family: var(--font-sans);
+    padding: 10px 16px;
+    font-family: var(--font-body);
     font-size: 0.9rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid #ddd;
+    border-radius: 0;
+    /* Boxy */
     cursor: pointer;
+    background-color: #fff;
+    color: var(--brand-green);
+    font-weight: 600;
 }
 
 /* List Layout */
@@ -82,9 +99,16 @@ header {
 
 .event-row {
     display: flex;
-    align-items: center;
-    padding: 40px 0;
+    align-items: flex-start;
+    /* Align top for better multi-line handling */
+    padding: 30px 0;
     border-bottom: 1px solid #e5e5e5;
+    transition: background-color 0.2s ease;
+}
+
+.event-row:hover {
+    background-color: #fcfcfc;
+    /* Subtle hover effect */
 }
 
 .event-row:last-child {
@@ -96,12 +120,14 @@ header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    margin-right: 40px;
+    justify-content: flex-start;
+    /* Align top */
+    width: 70px;
+    margin-right: 30px;
     flex-shrink: 0;
     line-height: 1;
+    padding-top: 5px;
+    /* Visual alignment */
 }
 
 .date-month {
@@ -109,14 +135,18 @@ header {
     text-transform: uppercase;
     font-weight: 700;
     color: var(--text-secondary);
-    margin-bottom: 4px;
+    /* Neutral gray */
+    margin-bottom: 8px;
+    font-family: var(--font-heading);
+    letter-spacing: 0.1em;
 }
 
 .date-day {
-    font-family: var(--font-serif);
-    font-size: 1.8rem;
-    font-weight: 400;
-    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--brand-green);
+    /* Updated to Brand Green */
 }
 
 /* Event Content */
@@ -126,47 +156,57 @@ header {
 }
 
 .event-tags {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #888;
+    color: var(--brand-gold);
+    /* Use gold accent for tags */
     margin-bottom: 8px;
+    font-family: var(--font-heading);
 }
 
 .event-title {
-    font-family: var(--font-serif);
-    font-size: 2rem;
-    font-weight: 400;
-    color: #0c2b64;
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    /* Keep title black/dark for contrast */
     margin: 0 0 8px 0;
     line-height: 1.2;
 }
 
 .event-meta {
-    font-family: var(--font-serif);
-    font-style: italic;
+    font-family: var(--font-body);
+    font-style: normal;
     color: var(--text-secondary);
-    font-size: 1.1rem;
+    font-size: 1rem;
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
 .event-meta-location {
-    color: #888;
+    color: var(--text-secondary);
+    border-left: 1px solid #ddd;
+    padding-left: 10px;
 }
 
 /* Action Button */
 .event-action {
     margin-left: auto;
     flex-shrink: 0;
+    align-self: center;
 }
 
 .btn-details {
     display: inline-block;
-    padding: 12px 24px;
-    border: 1px solid #000;
+    padding: 12px 28px;
+    border: 2px solid var(--brand-green);
+    /* Green border */
     background: transparent;
-    color: #000;
-    font-family: var(--font-sans);
+    color: var(--brand-green);
+    font-family: var(--font-heading);
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -177,15 +217,16 @@ header {
 }
 
 .btn-details:hover {
-    background: #000;
+    background: var(--brand-green);
     color: #fff;
 }
 
 .loading {
-    padding: 40px;
+    padding: 60px;
     text-align: center;
     font-style: italic;
     color: var(--text-secondary);
+    font-family: var(--font-body);
 }
 
 /* Detail View Styles */
@@ -197,11 +238,14 @@ header {
     display: inline-flex;
     align-items: center;
     font-size: 0.9rem;
-    color: #111;
+    color: var(--brand-green);
     text-decoration: none;
-    font-weight: 700;
+    font-weight: 600;
     margin-bottom: 30px;
     cursor: pointer;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .back-link:hover {
@@ -216,7 +260,7 @@ header {
 .detail-grid {
     display: grid;
     grid-template-columns: 1fr 2fr;
-    gap: 40px;
+    gap: 60px;
     margin-top: 20px;
 }
 
@@ -232,59 +276,70 @@ header {
 }
 
 .detail-title {
-    font-family: var(--font-serif);
-    font-size: 2.5rem;
-    color: #1e3a8a;
+    font-family: var(--font-heading);
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--brand-green);
     margin: 0 0 20px 0;
     line-height: 1.1;
+    text-transform: uppercase;
 }
 
 .detail-date-time {
-    font-family: var(--font-serif);
-    font-style: italic;
-    color: #4b5563;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--text-primary);
     font-size: 1.1rem;
     margin-bottom: 8px;
+    border-left: 4px solid var(--brand-green);
+    padding-left: 15px;
 }
 
 .detail-location {
-    font-family: var(--font-serif);
-    font-style: italic;
-    color: #4b5563;
+    font-family: var(--font-body);
+    font-style: normal;
+    color: var(--text-secondary);
     font-size: 1rem;
+    padding-left: 19px;
+    /* Align with text above (border + padding) */
 }
 
 .detail-image {
     width: 100%;
     height: auto;
-    border-radius: 4px;
-    margin-bottom: 30px;
+    border-radius: 0;
+    /* Keep sharp edges for this modern look */
+    margin-bottom: 40px;
     object-fit: cover;
 }
 
 .btn-register {
     display: inline-block;
-    background-color: #0c2b64;
+    background-color: var(--brand-green);
     color: white;
-    padding: 16px 32px;
+    padding: 18px 40px;
     text-decoration: none;
     text-transform: uppercase;
+    font-family: var(--font-heading);
     font-weight: 700;
     letter-spacing: 0.1em;
     text-align: center;
     align-self: flex-start;
-    margin-top: 20px;
+    margin-top: 30px;
     transition: background 0.2s;
+    border: none;
 }
 
 .btn-register:hover {
-    background-color: #1e3a8a;
+    background-color: #12362b;
+    /* Darker shade */
 }
 
 .detail-description {
-    font-size: 1.05rem;
-    line-height: 1.7;
-    color: #374151;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+    font-family: var(--font-body);
 }
 
 .detail-description p {
@@ -302,40 +357,50 @@ header {
         margin-bottom: 16px;
         flex-direction: row;
         justify-content: flex-start;
+        align-items: baseline;
         height: auto;
         background: none;
         width: 100%;
+        gap: 8px;
+    }
+
+    .event-date-box .date-month {
+        margin-bottom: 0;
     }
 
     .date-day {
-        margin-left: 8px;
+        font-size: 1.5rem;
     }
 
     .event-action {
         margin-left: 0;
-        margin-top: 16px;
+        margin-top: 20px;
         width: 100%;
     }
 
     .btn-details {
         display: block;
         text-align: center;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     /* Header Responsive */
     #list-header {
         position: relative;
-        right: auto;
-        top: auto;
-        transform: none;
-        margin-bottom: 20px;
-        width: 100%;
-        justify-content: flex-start;
+        /* Not needed to override since we removed absolute positioning in desktop */
+        width: auto;
     }
 
     header {
         flex-direction: column-reverse;
+        /* Put filter on top/bottom? Or just Column */
         align-items: flex-start;
+        gap: 20px;
+    }
+
+    .page-title {
+        font-size: 2.5rem;
     }
 }
 
