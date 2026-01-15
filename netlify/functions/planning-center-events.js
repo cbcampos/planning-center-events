@@ -2,6 +2,12 @@
 require('dotenv').config();
 const axios = require('axios');
 
+// Simple in-memory cache
+// Note: In serverless functions, this persists only as long as the container is warm.
+// This is not a guaranteed persistent cache, but effective for high-traffic bursts.
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 Minutes
+
 exports.handler = async function (event, context) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -17,6 +23,30 @@ exports.handler = async function (event, context) {
       headers,
       body: ''
     };
+  }
+
+  // --- Cache Check ---
+  // Create a unique key based on the query parameters (limit, id, etc.)
+  const cacheKey = JSON.stringify(event.queryStringParameters || {});
+
+  if (cache.has(cacheKey)) {
+    const cachedItem = cache.get(cacheKey);
+    const isExpired = (Date.now() - cachedItem.timestamp) > CACHE_TTL;
+
+    if (!isExpired) {
+      // console.log('Serving from cache:', cacheKey); // Optional debug
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          events: cachedItem.data,
+          _cached: true, // Internal flag useful for debugging
+          _cached_at: new Date(cachedItem.timestamp).toISOString()
+        })
+      };
+    } else {
+      cache.delete(cacheKey); // Cleanup expired
+    }
   }
 
   // Support both variable naming conventions just in case, prioritizing the user's recent specific ones
@@ -131,6 +161,12 @@ exports.handler = async function (event, context) {
         church_center_url: attributes.church_center_url,
         tags: tags
       };
+    });
+
+    // --- Set Cache ---
+    cache.set(cacheKey, {
+      data: formattedEvents,
+      timestamp: Date.now()
     });
 
     return {
