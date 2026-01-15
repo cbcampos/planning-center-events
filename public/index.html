@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upcoming Church Events</title>
+    <!-- Importing a Serif font for the title (Playfair Display) and Sans for body (Inter/Lato) -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,600&family=Lato:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #fca5a5;
+            /* Soft red for date if needed, though design uses darker red text */
+            --accent-red: #ef4444;
+            /* Specific red for the date text */
+            --bg-color: #ffffff;
+            --text-main: #111827;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --font-serif: 'Playfair Display', serif;
+            --font-sans: 'Lato', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header Section */
+        header {
+            margin-bottom: 40px;
+        }
+
+        .filter-label {
+            font-size: 0.85rem;
+            font-weight: 900;
+            color: var(--accent-red);
+            /* Red label */
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        select#category-filter {
+            padding: 8px 12px;
+            font-size: 1rem;
+            border: 1px solid #111;
+            border-radius: 0;
+            /* Boxy look */
+            background: white;
+            min-width: 200px;
+            font-family: var(--font-sans);
+        }
+
+        h1.page-title {
+            font-family: var(--font-serif);
+            font-size: 3.5rem;
+            font-weight: 400;
+            font-style: italic;
+            color: #1e3a8a;
+            /* Dark blue from screenshot */
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* Event List */
+        #events-container {
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .event-row {
+            display: flex;
+            align-items: center;
+            /* Vertically center */
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+
+        /* Date Box */
+        .event-date-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            height: 80px;
+            margin-right: 24px;
+            background-color: #fafafa;
+            /* In screenshot, it looks like just text, maybe varied background. keeping simple. */
+        }
+
+        .date-month {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #9ca3af;
+            /* Light grey for month */
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin-bottom: -4px;
+        }
+
+        .date-day {
+            font-size: 2rem;
+            color: var(--accent-red);
+            /* Red for day number */
+            font-weight: 700;
+            font-family: var(--font-serif);
+        }
+
+        /* Content */
+        .event-content {
+            flex-grow: 1;
+        }
+
+        .event-tags {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .event-title {
+            font-family: var(--font-serif);
+            /* Serif title */
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 6px 0;
+            color: #111827;
+            line-height: 1.2;
+        }
+
+        .event-meta {
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            /* Using the blue for meta text too, or similar */
+            font-style: italic;
+            font-family: var(--font-serif);
+        }
+
+        .event-meta-location {
+            color: #1e3a8a;
+            font-weight: 400;
+        }
+
+        /* Button */
+        .event-action {
+            margin-left: 20px;
+        }
+
+        .btn-details {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #f3f4f6;
+            color: #374151;
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+
+        .btn-details:hover {
+            background-color: #e5e7eb;
+            color: #111;
+        }
+
+        .loading {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .detail-view {
+            display: none;
+            /* Hidden by default */
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #111;
+            text-decoration: none;
+            font-weight: 700;
+            margin-bottom: 30px;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .back-arrow {
+            margin-right: 8px;
+        }
+
+        /* Detail Grid */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 40px;
+            margin-top: 20px;
+        }
+
+        .detail-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .detail-main {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-title {
+            font-family: var(--font-serif);
+            font-size: 2.5rem;
+            color: #1e3a8a;
+            margin: 0 0 20px 0;
+            line-height: 1.1;
+        }
+
+        .detail-date-time {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: #4b5563;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .detail-location {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: #4b5563;
+            font-size: 1rem;
+        }
+
+        .btn-register {
+            display: inline-block;
+            background-color: #0c2b64;
+            /* Deep Blue */
+            color: white;
+            padding: 16px 32px;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-align: center;
+            align-self: flex-start;
+            margin-bottom: 30px;
+            transition: background 0.2s;
+        }
+
+        .btn-register:hover {
+            background-color: #1e3a8a;
+        }
+
+        .detail-description {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #374151;
+        }
+
+        .detail-description p {
+            margin-bottom: 1.5em;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .event-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .event-date-box {
+                margin-bottom: 16px;
+                flex-direction: row;
+                justify-content: flex-start;
+                height: auto;
+                background: none;
+            }
+
+            .date-day {
+                margin-left: 8px;
+            }
+
+            .event-action {
+                margin-left: 0;
+                margin-top: 16px;
+                width: 100%;
+            }
+
+            .btn-details {
+                display: block;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .detail-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .btn-register {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div id="list-header">
+                <label class="filter-label">Filter Events</label>
+                <select id="category-filter">
+                    <option>Choose a category</option>
+                    <option value="all">View All</option>
+                    <!-- Categories could be dynamic later -->
+                </select>
+            </div>
+            <h1 class="page-title">Events</h1>
+        </header>
+
+        <!-- List View Container -->
+        <div id="events-container">
+            <div class="loading">Loading events...</div>
+        </div>
+
+        <!-- Detail View Container -->
+        <div id="detail-container" class="detail-view">
+            <a href="#" class="back-link" onclick="goBack(event)">
+                <span class="back-arrow">&larr;</span> Back to All Events
+            </a>
+
+            <div id="detail-content" class="loading">Loading details...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- Router Logic ---
+        function getParams() {
+            return new URLSearchParams(window.location.search);
+        }
+
+        function goBack(e) {
+            if (e) e.preventDefault();
+            // Remove params to go back to list
+            const url = new URL(window.location);
+            url.searchParams.delete('event_instance_id');
+            window.history.pushState({}, '', url);
+            render();
+        }
+
+        function viewEvent(id) {
+            // Add param to URL
+            const url = new URL(window.location);
+            url.searchParams.set('event_instance_id', id);
+            window.history.pushState({}, '', url);
+            render();
+        }
+
+        // Handle back/forward browser buttons
+        window.onpopstate = render;
+
+        // --- Main Render Switch ---
+        function render() {
+            const params = getParams();
+            const eventId = params.get('event_instance_id');
+
+            if (eventId) {
+                showDetail(eventId);
+            } else {
+                showList();
+            }
+        }
+
+        // --- List View Logic ---
+        async function showList() {
+            document.getElementById('events-container').style.display = 'flex';
+            document.getElementById('detail-container').style.display = 'none';
+            document.getElementById('list-header').style.visibility = 'visible';
+
+            const container = document.getElementById('events-container');
+            // Only load if empty (simple caching)
+            if (container.children.length > 1 || (container.children.length === 1 && !container.children[0].classList.contains('loading'))) return;
+
+            container.innerHTML = '<div class="loading">Loading events...</div>';
+            const API_ENDPOINT = '/.netlify/functions/planning-center-events?limit=20';
+
+            try {
+                const response = await fetch(API_ENDPOINT);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+
+                if (!data.events || data.events.length === 0) {
+                    container.innerHTML = '<div class="loading">No upcoming events found.</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+
+                data.events.forEach(event => {
+                    const startDate = new Date(event.start_time);
+
+                    const month = startDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                    const day = startDate.getDate();
+                    const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    let timeString = startTime;
+                    if (event.end_time) {
+                        const endTime = new Date(event.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                        timeString += ` - ${endTime}`;
+                    }
+
+                    const location = event.location ? ` • &nbsp; ${event.location}` : '';
+                    const tagsHtml = '';
+
+                    const card = document.createElement('div');
+                    card.className = 'event-row';
+
+                    // Use our internal routing for clicking
+                    // If there's NO registration URL, we default to showing details. 
+                    // Wait, user might want "View Details" to go to our internal detail page regardless? 
+                    // For now: "View Details" -> Internal Detail Page. registration_url -> External.
+                    // Actually user screenshot has "Register" on the detail page.
+                    // So "View Details" on list should go to Detail Page.
+
+                    card.innerHTML = `
+                        <div class="event-date-box">
+                            <span class="date-month">${month}</span>
+                            <span class="date-day">${day}</span>
+                        </div>
+                        
+                        <div class="event-content">
+                            ${tagsHtml}
+                            <h2 class="event-title">${event.title}</h2>
+                            <div class="event-meta">
+                                ${timeString}
+                                <span class="event-meta-location">${location}</span>
+                            </div>
+                        </div>
+
+                        <div class="event-action">
+                            <button onclick="viewEvent('${event.id}')" class="btn-details">View Details</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = `<div class="loading">Unable to load events.</div>`;
+            }
+        }
+
+        // --- Detail View Logic ---
+        async function showDetail(id) {
+            document.getElementById('events-container').style.display = 'none';
+            document.getElementById('detail-container').style.display = 'block';
+            document.getElementById('list-header').style.visibility = 'hidden'; // Hide filter on detail
+
+            const content = document.getElementById('detail-content');
+            content.innerHTML = '<div class="loading">Loading details...</div>';
+
+            const API_ENDPOINT = `/.netlify/functions/planning-center-events?id=${id}`;
+
+            try {
+                const response = await fetch(API_ENDPOINT);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                const event = data.events[0];
+
+                if (!event) {
+                    content.innerHTML = '<div class="loading">Event not found.</div>';
+                    return;
+                }
+
+                const startDate = new Date(event.start_time);
+                // Full Date: Wednesday, January 14, 2026
+                const fullDate = startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                let timeString = startTime;
+                if (event.end_time) {
+                    const endTime = new Date(event.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                    timeString += ` - ${endTime}`;
+                }
+
+                // If we have a registration URL, show Register button. Else maybe link to Church Center ??
+                // Screenshot has a big Register button.
+                const registerBtn = event.registration_url
+                    ? `<a href="${event.registration_url}" target="_blank" class="btn-register">Register</a>`
+                    : (event.church_center_url ? `<a href="${event.church_center_url}" target="_blank" class="btn-register">View on Church Center</a>` : '');
+
+                content.innerHTML = `
+                    <div class="detail-grid">
+                        <div class="detail-sidebar">
+                            <h2 class="detail-title">${event.title}</h2>
+                            
+                            <div class="detail-date-time">
+                                <div>${fullDate}</div>
+                                <div>${timeString}</div>
+                            </div>
+
+                            ${event.location ? `<div class="detail-location">${event.location}</div>` : ''}
+                        </div>
+
+                        <div class="detail-main">
+                            ${registerBtn}
+                            
+                            <div class="detail-description">
+                                ${event.description || event.summary || 'No description available.'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Error:', error);
+                content.innerHTML = `<div class="loading">Unable to load event details.</div>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', render);
+    </script>
+
+</body>
+
+</html>
