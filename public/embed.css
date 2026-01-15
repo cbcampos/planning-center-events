@@ -44,6 +44,11 @@ header {
     /* Lighter, cleaner border */
 }
 
+header.detail-mode {
+    margin-bottom: 20px;
+    padding-bottom: 0;
+}
+
 /* Page Title */
 .page-title {
     display: none;

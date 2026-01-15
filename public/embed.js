@@ -51,8 +51,11 @@ async function showList() {
     document.getElementById('detail-container').style.display = 'none';
 
     // Show filter on list view
-    const header = document.getElementById('list-header');
-    if (header) header.style.visibility = 'visible';
+    const listHeader = document.getElementById('list-header');
+    if (listHeader) listHeader.style.display = 'flex';
+
+    const mainHeader = document.querySelector('header');
+    if (mainHeader) mainHeader.classList.remove('detail-mode');
 
     const container = document.getElementById('events-container');
 
@@ -222,9 +225,12 @@ async function showDetail(id) {
     // Show detail container
     document.getElementById('detail-container').style.display = 'block';
 
-    // Hide filter on detail view
-    const header = document.getElementById('list-header');
-    if (header) header.style.visibility = 'hidden';
+    // Hide filter and shrink header on detail view
+    const listHeader = document.getElementById('list-header');
+    if (listHeader) listHeader.style.display = 'none';
+
+    const mainHeader = document.querySelector('header');
+    if (mainHeader) mainHeader.classList.add('detail-mode');
 
     const content = document.getElementById('detail-content');
     content.innerHTML = '<div class="loading">Loading details...</div>';
