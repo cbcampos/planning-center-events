@@ -46,6 +46,7 @@ header {
 
 /* Page Title */
 .page-title {
+    display: none;
     font-family: var(--font-heading);
     font-size: 3rem;
     /* Slightly smaller but bolder */
