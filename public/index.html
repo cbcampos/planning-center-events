@@ -256,11 +256,22 @@
             font-size: 1rem;
         }
 
+        .detail-image {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            /* Optional: Slight rounding */
+            margin-bottom: 30px;
+            object-fit: cover;
+            /* box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); Optional shadow */
+        }
+
         .btn-register {
             display: inline-block;
             background-color: #0c2b64;
             /* Deep Blue */
             color: white;
+            /* Text color */
             padding: 16px 32px;
             text-decoration: none;
             text-transform: uppercase;
@@ -268,7 +279,8 @@
             letter-spacing: 0.1em;
             text-align: center;
             align-self: flex-start;
-            margin-bottom: 30px;
+            margin-top: 20px;
+            /* moved to bottom of content usually */
             transition: background 0.2s;
         }
 
@@ -510,11 +522,15 @@
                     timeString += ` - ${endTime}`;
                 }
 
-                // If we have a registration URL, show Register button. Else maybe link to Church Center ??
-                // Screenshot has a big Register button.
+                // If we have a registration URL, show Register button.
                 const registerBtn = event.registration_url
                     ? `<a href="${event.registration_url}" target="_blank" class="btn-register">Register</a>`
                     : (event.church_center_url ? `<a href="${event.church_center_url}" target="_blank" class="btn-register">View on Church Center</a>` : '');
+
+                // Image HTML
+                const imageHtml = event.image_url
+                    ? `<img src="${event.image_url}" alt="${event.title}" class="detail-image" />`
+                    : '';
 
                 content.innerHTML = `
                     <div class="detail-grid">
@@ -530,11 +546,13 @@
                         </div>
 
                         <div class="detail-main">
-                            ${registerBtn}
+                            ${imageHtml}
                             
                             <div class="detail-description">
-                                ${event.description || event.summary || 'No description available.'}
+                                ${event.description || event.summary || ''}
                             </div>
+                            
+                            ${registerBtn}
                         </div>
                     </div>
                 `;
