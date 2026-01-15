@@ -23,6 +23,14 @@ function viewEvent(id) {
 // Handle back/forward browser buttons
 window.onpopstate = render;
 
+// --- Helper for API URL ---
+function getApiUrl() {
+    if (window.PCO_EVENTS_API_BASE) {
+        return window.PCO_EVENTS_API_BASE;
+    }
+    return '/.netlify/functions/planning-center-events';
+}
+
 // --- Main Render Switch ---
 function render() {
     const params = getParams();
@@ -41,65 +49,21 @@ let allEvents = []; // Store fetched events for filtering
 async function showList() {
     document.getElementById('events-container').style.display = 'flex';
     document.getElementById('detail-container').style.display = 'none';
-    document.getElementById('list-header').style.visibility = 'visible';
+
+    // Show filter on list view
+    const header = document.getElementById('list-header');
+    if (header) header.style.visibility = 'visible';
 
     const container = document.getElementById('events-container');
 
     // If we already have events, just re-render (allows back button to keep state)
     if (allEvents.length > 0) {
-        renderEvents(allEvents); // Render all or currently filtered? For now render all.
-        // Actually, we should probably check current filter state?
-        // Let's keep it simple: Reset filter on page load? Or persisting?
-        // Let's re-apply current filter if any.
+        renderEvents(allEvents);
         filterEvents();
         return;
     }
 
     container.innerHTML = '<div class="loading">Loading events...</div>';
-
-    // Use Global variable for API Base if set, else default
-    let apiBase = '/.netlify/functions/planning-center-events';
-    if (window.PCO_EVENTS_API_BASE) {
-        apiBase = window.PCO_EVENTS_API_BASE + '/.netlify/functions/planning-center-events';
-        // Check if the user put the full path or just domain?
-        // The requirement was: "Updated the JavaScript to allow for a configurable API base URL"
-        // If they set PCO_EVENTS_API_BASE to "https://my-site.netlify.app", we append the function path.
-        // Or maybe they set it to the full endpoint?
-        // Let's assume they set the BASE DOMAIN for flexibility.
-
-        // Wait, looking at previous code snippet:
-        /*
-        function getApiUrl() {
-           let base = window.PCO_EVENTS_API_BASE;
-           if (!base) {
-               base = '/.netlify/functions/planning-center-events';
-           }
-           return base;
-        }
-        */
-        // This implies PCO_EVENTS_API_BASE SHOULD BE THE FULL URL if set, or at least the path.
-        // If I look at the snippet from history:
-        /*
-        function getApiUrl() {
-           let base = window.PCO_EVENTS_API_BASE;
-           if (!base) {
-               // Default to relative if no global var set (works for same-domain)
-               base = '/.netlify/functions/planning-center-events';
-           }
-           return base;
-        }
-        */
-        // So I should use that helper logic.
-
-    }
-
-    // I will redefine the helper here for clarity and use it.
-    function getApiUrl() {
-        if (window.PCO_EVENTS_API_BASE) {
-            return window.PCO_EVENTS_API_BASE;
-        }
-        return '/.netlify/functions/planning-center-events';
-    }
 
     const API_ENDPOINT = getApiUrl() + '?limit=20';
 
@@ -252,17 +216,18 @@ function renderEvents(events) {
 
 // --- Detail View Logic ---
 async function showDetail(id) {
+    // Hide list container
     document.getElementById('events-container').style.display = 'none';
+
+    // Show detail container
+    document.getElementById('detail-container').style.display = 'block';
+
+    // Hide filter on detail view
+    const header = document.getElementById('list-header');
+    if (header) header.style.visibility = 'hidden';
 
     const content = document.getElementById('detail-content');
     content.innerHTML = '<div class="loading">Loading details...</div>';
-
-    function getApiUrl() {
-        if (window.PCO_EVENTS_API_BASE) {
-            return window.PCO_EVENTS_API_BASE;
-        }
-        return '/.netlify/functions/planning-center-events';
-    }
 
     const API_ENDPOINT = getApiUrl() + `?id=${id}`;
 
