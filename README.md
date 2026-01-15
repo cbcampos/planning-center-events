@@ -10,13 +10,53 @@ It includes a demo HTML page showing how to embed these events on any website (S
 - **CORS Enabled**: Can be called from any domain.
 - **Reusable**: One endpoint for all your websites.
 
-## Setup & Deployment
+## 🚀 For Other Churches: How to Use This
 
-1.  **Deploy to Netlify**:
-    - Push this repository to your GitHub account.
-    - Log in to Netlify and create a "New site from Git".
-    - Choose this repository.
-    - Netlify will detect the `netlify.toml` automatically.
+You can deploy your own version of this tool for free in about 2 minutes. You don't need to be a developer.
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/cbcampos/planning-center-events)
+
+### Step 1: Click the Button
+Click the **Deploy to Netlify** button above. This will:
+1.  Ask you to connect your GitHub account.
+2.  Clone this code into your own repository.
+3.  Create a new site on Netlify for you.
+
+### Step 2: Enter Your Credentials
+During the setup (or in **Site Settings > Environment Variables** after), enter your Planning Center keys:
+- `EXPO_PUBLIC_PCO_APPLICATION_ID`: Your Application ID.
+- `EXPO_PUBLIC_PCO_SECRET`: Your Secret.
+
+> **Where do I get these?**
+> 1. Go to [Planning Center Developer API](https://api.planningcenteronline.com/oauth/applications).
+> 2. Click "New Personal Access Token" (easiest) or "New Application".
+> 3. Copy the ID and Secret immediately.
+
+### Step 3: Embed on Your Site
+Once deployed, Netlify will give you a URL (e.g., `https://your-church-events.netlify.app`).
+
+1.  Go to your website builder (Squarespace, Webflow, etc.).
+2.  Add a **Code Block**.
+3.  Paste the following (updating the URL to match yours):
+
+```html
+<div id="events-container">Loading events...</div>
+<div id="detail-container" class="detail-view" style="display:none;">
+    <a href="#" class="back-link" onclick="goBack(event)">← Back</a>
+    <div id="detail-content"></div>
+</div>
+
+<script>
+    // UPDATE THIS URL to your Netlify site URL
+    const BASE_URL = 'https://your-church-events.netlify.app/.netlify/functions/planning-center-events';
+</script>
+<script src="https://cbcampos.github.io/planning-center-events/embed.js"></script>
+<link rel="stylesheet" href="https://cbcampos.github.io/planning-center-events/embed.css">
+```
+
+*(Note: We recommend hosting the JS/CSS files yourself or copying the content from `public/index.html` into your code block for full control).*
+
+## Features
 
 2.  **Configure Environment Variables**:
     - In your Netlify Site Dashboard, go to **Site configuration > Environment variables**.
