@@ -403,6 +403,31 @@ header {
     .page-title {
         font-size: 2.5rem;
     }
+
+    /* Mobile Improvements */
+    .event-title {
+        font-size: 1.4rem;
+    }
+
+    .event-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .event-meta-location {
+        border-left: none;
+        padding-left: 0;
+    }
+
+    .btn-details {
+        display: block;
+        text-align: center;
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 0.75rem;
+        padding: 12px 0;
+    }
 }
 
 @media (max-width: 768px) {
