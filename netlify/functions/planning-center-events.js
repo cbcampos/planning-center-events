@@ -1,186 +1,38 @@
-// Load environment variables for local development
 require('dotenv').config();
-const axios = require('axios');
-
-// Simple in-memory cache
-// Note: In serverless functions, this persists only as long as the container is warm.
-// This is not a guaranteed persistent cache, but effective for high-traffic bursts.
-const cache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 Minutes
-
-exports.handler = async function (event, context) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json'
-  };
-
-  // Handle preflight requests
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: ''
-    };
+const axios=require('axios');
+const {publicEvents}=require('../../lib/public-calendar');
+const cache=new Map();const TTL=5*60*1000;
+const endpoint='https://api.planningcenteronline.com/calendar/v2/event_instances';
+const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'Content-Type','Access-Control-Allow-Methods':'GET, OPTIONS','Content-Type':'application/json'};
+const result=(statusCode,body)=>({statusCode,headers,body:JSON.stringify(body)});
+exports.handler=async function(request){
+ if(request.httpMethod==='OPTIONS')return {statusCode:204,headers,body:''};
+ if(request.httpMethod!=='GET')return result(405,{error:'Method not allowed'});
+ const query=request.queryStringParameters||{};
+ if(query.id&&!/^\d+$/.test(query.id))return result(400,{error:'Invalid event occurrence'});
+ const limit=Math.min(500,Math.max(1,Number.parseInt(query.limit||'20',10)||20));
+ const key=`${query.id||'upcoming'}:${limit}`;const cached=cache.get(key);
+ if(cached&&Date.now()-cached.time<TTL)return result(200,{...cached.data,_cached:true});
+ const username=process.env.EXPO_PUBLIC_PCO_APPLICATION_ID||process.env.PC_APP_ID;
+ const password=process.env.EXPO_PUBLIC_PCO_SECRET||process.env.PC_SECRET;
+ if(!username||!password)return result(503,{error:'Calendar temporarily unavailable'});
+ try{
+  const params={include:'event,event.tags,tags,tags.tag_group',
+   'fields[EventInstance]':'name,starts_at,ends_at,published_starts_at,published_ends_at,location,church_center_url,canceled_at,description,image_url,kind,event,tags',
+   'fields[Event]':'name,summary,description,image_url,registration_url,visible_in_church_center,link_only,approval_status,tags',
+   per_page:100,order:'starts_at'};
+  if(!query.id)params['where[starts_at][gte]']=new Date().toISOString();
+  let next=query.id?`${endpoint}/${query.id}`:endpoint;let instances=[];let included=[];let pages=0;
+  while(next&&pages<10){
+   const url=new URL(next);
+   if(url.origin!=='https://api.planningcenteronline.com'||!url.pathname.startsWith('/calendar/v2/event_instances'))throw new Error('Invalid pagination target');
+   const response=await axios.get(url.toString(),{auth:{username,password},params:pages===0?params:undefined,timeout:15000});
+   const body=response.data;if(!body?.data)throw new Error('Invalid calendar response');
+   instances.push(...(Array.isArray(body.data)?body.data:[body.data]));included.push(...(body.included||[]));pages++;next=body.links?.next||null;
+   if(query.id)break;
   }
-
-  // --- Cache Check ---
-  // Create a unique key based on the query parameters (limit, id, etc.)
-  const cacheKey = JSON.stringify(event.queryStringParameters || {});
-
-  if (cache.has(cacheKey)) {
-    const cachedItem = cache.get(cacheKey);
-    const isExpired = (Date.now() - cachedItem.timestamp) > CACHE_TTL;
-
-    if (!isExpired) {
-      // console.log('Serving from cache:', cacheKey); // Optional debug
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          events: cachedItem.data,
-          _cached: true, // Internal flag useful for debugging
-          _cached_at: new Date(cachedItem.timestamp).toISOString()
-        })
-      };
-    } else {
-      cache.delete(cacheKey); // Cleanup expired
-    }
-  }
-
-  // Support both variable naming conventions just in case, prioritizing the user's recent specific ones
-  const appId = process.env.EXPO_PUBLIC_PCO_APPLICATION_ID || process.env.PC_APP_ID;
-  const secret = process.env.EXPO_PUBLIC_PCO_SECRET || process.env.PC_SECRET;
-
-  if (!appId || !secret) {
-    console.error('Missing Planning Center credentials');
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Server configuration error: Missing credentials' })
-    };
-  }
-
-  try {
-    // Get parameters from query string
-    const limit = event.queryStringParameters.limit || 10;
-    const singleId = event.queryStringParameters.id;
-
-    // Calculate 'now' in the format PCO expects
-    const now = new Date().toISOString();
-
-    // --- 3. Fetch Data ---
-    // We need both events and tag groups to provide the hierarchy.
-    // Fetch in parallel.
-
-    // Prepare Event Request
-    let eventPromise;
-    if (singleId) {
-      eventPromise = axios.get(`https://api.planningcenteronline.com/calendar/v2/event_instances/${singleId}`, {
-        auth: { username: appId, password: secret },
-        params: { 'include': 'event,event.tags' }
-      });
-    } else {
-      eventPromise = axios.get('https://api.planningcenteronline.com/calendar/v2/event_instances', {
-        auth: { username: appId, password: secret },
-        params: {
-          'where[starts_at][gte]': now,
-          'order': 'starts_at',
-          'per_page': limit,
-          'include': 'event,event.tags'
-        }
-      });
-    }
-
-    // Prepare Tag Group Request (Fetch all to build map)
-    const groupPromise = axios.get('https://api.planningcenteronline.com/calendar/v2/tag_groups?include=tags', {
-      auth: { username: appId, password: secret }
-    });
-
-    const [eventResponse, groupResponse] = await Promise.all([eventPromise, groupPromise]);
-
-    // --- 4. Process Tag Groups ---
-    const tagToGroupMap = {};
-    const groups = groupResponse.data.data || [];
-    groups.forEach(group => {
-      const groupName = group.attributes.name;
-      // The group relationships contains the tags
-      if (group.relationships && group.relationships.tags && group.relationships.tags.data) {
-        group.relationships.tags.data.forEach(tagRef => {
-          tagToGroupMap[tagRef.id] = groupName;
-        });
-      }
-    });
-
-    // --- 5. Process Events ---
-    const instances = Array.isArray(eventResponse.data.data) ? eventResponse.data.data : [eventResponse.data.data];
-    const included = eventResponse.data.included || [];
-
-    // Create maps for easy lookup
-    const eventsMap = {};
-    const tagsMap = {};
-
-    included.forEach(item => {
-      if (item.type === 'Event') {
-        eventsMap[item.id] = item;
-      } else if (item.type === 'Tag') {
-        tagsMap[item.id] = item.attributes;
-      }
-    });
-
-    // Transform the data
-    const formattedEvents = instances.map(instance => {
-      const eventDetails = eventsMap[instance.relationships.event.data.id] || {};
-      const attributes = instance.attributes;
-
-      // Resolve tags
-      const tagIds = eventDetails.relationships && eventDetails.relationships.tags && eventDetails.relationships.tags.data
-        ? eventDetails.relationships.tags.data.map(t => t.id)
-        : [];
-
-      const tags = tagIds.map(id => {
-        const tagAttr = tagsMap[id];
-        if (!tagAttr) return null;
-        return {
-          name: tagAttr.name,
-          color: tagAttr.color,
-          group: tagToGroupMap[id] || null // Add Group Name
-        };
-      }).filter(t => t);
-
-      return {
-        id: instance.id,
-        title: attributes.name || 'Untitled Event', // Instance name usually overrides event name
-        start_time: attributes.published_starts_at || attributes.starts_at, // Prefer published time
-        end_time: attributes.published_ends_at || attributes.ends_at,
-        location: attributes.location,
-        description: eventDetails.attributes ? eventDetails.attributes.summary : '',
-        image_url: eventDetails.attributes ? eventDetails.attributes.image_url : null,
-        registration_url: eventDetails.attributes ? eventDetails.attributes.registration_url : null,
-        church_center_url: attributes.church_center_url,
-        tags: tags
-      };
-    });
-
-    // --- Set Cache ---
-    cache.set(cacheKey, {
-      data: formattedEvents,
-      timestamp: Date.now()
-    });
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ events: formattedEvents })
-    };
-
-  } catch (error) {
-    console.error('Error fetching from Planning Center:', error.response ? error.response.data : error.message);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Failed to fetch events' })
-    };
-  }
+  const visible=publicEvents(instances,included).sort((a,b)=>Date.parse(a.start_time)-Date.parse(b.start_time));
+  const data={events:visible.slice(0,limit),complete:!next&&visible.length<=limit,fetched_at:new Date().toISOString(),source:'planning-center-calendar'};
+  cache.set(key,{time:Date.now(),data});return result(200,data);
+ }catch(error){console.error('Public calendar retrieval failed',error.response?.status||error.code||'upstream_error');return result(503,{error:'Calendar temporarily unavailable'});}
 };
